@@ -272,6 +272,12 @@ cfg_if::cfg_if! {
         }
     }
 }
+
+
+#[cfg(target_arch = "aarch64")]
+use axprocess::tty::init_uart_irq;
+
+
 #[cfg(feature = "irq")]
 fn init_interrupt() {
     use axhal::time::TIMER_IRQ_NUM;
@@ -299,6 +305,10 @@ fn init_interrupt() {
         #[cfg(feature = "multitask")]
         axtask::on_timer_tick();
     });
+
+    #[cfg(target_arch = "aarch64")]
+    // init uart irq, only support aarch64 now
+    init_uart_irq();
 
     // Enable IRQs before starting app
     axhal::arch::enable_irqs();
