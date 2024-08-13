@@ -14,8 +14,8 @@ keywords = ["Starry"]
 default = []
 
 smp = ["axhal/smp"]
-irq = ["axhal/irq", "axtask?/irq", "percpu", "kernel_guard"]
-tls = ["axhal/tls", "axtask?/tls"]
+irq = ["axhal/irq", "axtask/irq", "percpu", "kernel_guard"]
+tls = ["axhal/tls", "axtask/tls"]
 alloc = ["axalloc"]
 paging = ["axhal/paging", "lazy_init"]
 
@@ -36,7 +36,7 @@ axdriver = { git = "https://github.com/Starry-OS/axdriver.git", optional = true 
 axfs = { git = "https://github.com/Starry-OS/axfs.git", optional = true }
 axnet = { git = "https://github.com/Starry-OS/axnet.git", optional = true }
 axdisplay = { git = "https://github.com/Starry-OS/axdisplay.git", optional = true }
-axtask = { git = "https://github.com/Starry-OS/axtask.git", optional = true }
+axtask = { git = "https://github.com/Starry-OS/axtask.git"}
 axprocess = { git = "https://github.com/Starry-OS/axprocess.git", optional = true }
 axmem = { git = "https://github.com/Starry-OS/axmem.git", optional = true }
 crate_interface = { git = "https://github.com/Starry-OS/crate_interface.git" }
