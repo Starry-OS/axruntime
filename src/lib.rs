@@ -28,6 +28,8 @@ mod lang_items;
 #[cfg(feature = "smp")]
 mod mp;
 
+use axhal::mem::MemTraverser;
+
 #[cfg(feature = "smp")]
 pub use self::mp::{entered_cpus_num, rust_main_secondary};
 
@@ -122,15 +124,18 @@ pub extern "C" fn rust_main(cpu_id: usize, dtb: usize) {
     info!("Platform name {}.", axhal::platform_name());
 
     info!("Found physcial memory regions:");
-    for r in axhal::mem::memory_regions() {
-        info!(
-            "  [{:x?}, {:x?}) {} ({:?})",
-            r.paddr,
-            r.paddr + r.size,
-            r.name,
-            r.flags
-        );
-    }
+     axhal::mem::memory_regions( &MemTraverser{
+        mapper: &|r|{
+                info!(
+                "  [{:x?}, {:x?}) {} ({:?})",
+                r.paddr,
+                r.paddr + r.size,
+                r.name,
+                r.flags
+            );
+            true
+        },
+    });
     #[cfg(feature = "alloc")]
     init_allocator();
 
@@ -204,24 +209,30 @@ fn init_allocator() {
 
     let mut max_region_size = 0;
     let mut max_region_paddr = 0.into();
-    for r in memory_regions() {
-        if r.flags.contains(MemRegionFlags::FREE) && r.size > max_region_size {
-            max_region_size = r.size;
-            max_region_paddr = r.paddr;
-        }
-    }
-    for r in memory_regions() {
+    // for r in memory_regions() {
+    //     if r.flags.contains(MemRegionFlags::FREE) && r.size > max_region_size {
+    //         max_region_size = r.size;
+    //         max_region_paddr = r.paddr;
+    //     }
+    // }
+    memory_regions(&MemTraverser { mapper: &|r| {
         if r.flags.contains(MemRegionFlags::FREE) && r.paddr == max_region_paddr {
             axalloc::global_init(phys_to_virt(r.paddr).as_usize(), r.size);
-            break;
+            false
         }
-    }
-    for r in memory_regions() {
+    }});
+    // for r in memory_regions() {
+    //     if r.flags.contains(MemRegionFlags::FREE) && r.paddr != max_region_paddr {
+    //         axalloc::global_add_memory(phys_to_virt(r.paddr).as_usize(), r.size)
+    //             .expect("add heap memory region failed");
+    //     }
+    // }
+    memory_regions(&MemTraverser { mapper: &|r| {
         if r.flags.contains(MemRegionFlags::FREE) && r.paddr != max_region_paddr {
             axalloc::global_add_memory(phys_to_virt(r.paddr).as_usize(), r.size)
                 .expect("add heap memory region failed");
         }
-    }
+    }})
 }
 
 cfg_if::cfg_if! {
@@ -235,7 +246,8 @@ cfg_if::cfg_if! {
             use axhal::mem::{memory_regions, phys_to_virt};
             if axhal::cpu::this_cpu_is_bsp() {
                 let mut kernel_page_table = PageTable::try_new()?;
-                for r in memory_regions() {
+
+                memory_regions(&MemTraverser { mapper: &|r|{
                     kernel_page_table.map_region(
                         phys_to_virt(r.paddr),
                         r.paddr,
@@ -243,7 +255,7 @@ cfg_if::cfg_if! {
                         r.flags.into(),
                         true,
                     )?;
-                }
+                } })
 
                 #[cfg(feature = "img")]
                 {
